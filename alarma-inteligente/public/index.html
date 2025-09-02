@@ -4,21 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Alarma Inteligente</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
-        .active { background-color: #d4edda; border: 1px solid #c3e6cb; }
-        .inactive { background-color: #f8d7da; border: 1px solid #f5c6cb; }
-        .alert { background-color: #fff3cd; border: 1px solid #ffeaa7; }
-        .alert-list { max-height: 300px; overflow-y: auto; }
-    </style>
-</head>
+    <link rel="stylesheet" href="styles.css"> </head>
 <body>
     <div class="container">
         <h1>Sistema de Alarma Inteligente</h1>
         
-        <div class="status" id="systemStatus">
+        <div class="status initial-load" id="systemStatus">
             <h2>Estado del sistema: <span id="statusText">Cargando...</span></h2>
             <button id="toggleAlarm">Activar Alarma</button>
         </div>
@@ -37,6 +28,7 @@
         const statusElement = document.getElementById('statusText');
         const toggleButton = document.getElementById('toggleAlarm');
         const alertList = document.getElementById('alertList');
+        const systemStatusDiv = document.getElementById('systemStatus');
         
         let systemStatus = 'inactive';
         
@@ -44,6 +36,7 @@
         socket.on('device-status-update', (data) => {
             systemStatus = data.status;
             updateStatusDisplay();
+            systemStatusDiv.classList.remove('initial-load');
         });
         
         // Nueva alerta recibida
@@ -67,10 +60,9 @@
         
         function updateStatusDisplay() {
             statusElement.textContent = systemStatus === 'active' ? 'ACTIVA' : 'INACTIVA';
-            const statusDiv = document.getElementById('systemStatus');
             
-            statusDiv.classList.remove('active', 'inactive', 'alert');
-            statusDiv.classList.add(systemStatus);
+            systemStatusDiv.classList.remove('active', 'inactive');
+            systemStatusDiv.classList.add(systemStatus);
             
             toggleButton.textContent = systemStatus === 'active' ? 
                 'Desactivar Alarma' : 'Activar Alarma';
