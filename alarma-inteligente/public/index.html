@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Alarma Inteligente</title>
-    <link rel="stylesheet" href="styles.css"> </head>
+    <link rel="stylesheet" href="styles.css">
+</head>
 <body>
     <div class="container">
         <h1>Sistema de Alarma Inteligente</h1>
@@ -20,15 +21,30 @@
                 <p>Cargando alertas...</p>
             </div>
         </div>
+        
+        <button id="logoutButton">Cerrar Sesión</button>
+
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
+        // --- Lógica de Autenticación y Redirección ---
+        const token = localStorage.getItem('auth_token');
+
+        // Si no hay token de autenticación, redirigir al login
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+
+        // --- Lógica de la Aplicación ---
         const socket = io();
         const statusElement = document.getElementById('statusText');
         const toggleButton = document.getElementById('toggleAlarm');
         const alertList = document.getElementById('alertList');
         const systemStatusDiv = document.getElementById('systemStatus');
+        
+        // Referencia al nuevo botón de cerrar sesión
+        const logoutButton = document.getElementById('logoutButton');
         
         let systemStatus = 'inactive';
         
@@ -48,9 +64,13 @@
         toggleButton.addEventListener('click', () => {
             const newStatus = systemStatus === 'active' ? 'inactive' : 'active';
             
+            // Incluir el token en el encabezado de la petición
             fetch('/api/device-status', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     deviceId: 'ESP32_001',
                     status: newStatus
@@ -58,6 +78,15 @@
             });
         });
         
+        // Lógica para cerrar sesión
+        logoutButton.addEventListener('click', () => {
+            // Eliminar el token del almacenamiento local
+            localStorage.removeItem('auth_token');
+            
+            // Redirigir al usuario a la página de inicio de sesión
+            window.location.href = 'login.html';
+        });
+
         function updateStatusDisplay() {
             statusElement.textContent = systemStatus === 'active' ? 'ACTIVA' : 'INACTIVA';
             
@@ -80,12 +109,26 @@
         }
         
         // Cargar alertas iniciales
-        fetch('/api/alerts')
-            .then(response => response.json())
-            .then(alerts => {
-                alertList.innerHTML = '';
-                alerts.forEach(addAlertToList);
-            });
+        // Incluir el token en el encabezado de la petición
+        fetch('/api/alerts', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                // Si el servidor rechaza la petición, el token es inválido.
+                // Redirigir al login.
+                window.location.href = 'login.html';
+                throw new Error('Unauthorized');
+            }
+            return response.json();
+        })
+        .then(alerts => {
+            alertList.innerHTML = '';
+            alerts.forEach(addAlertToList);
+        })
+        .catch(error => console.error('Error:', error));
     </script>
 </body>
 </html>

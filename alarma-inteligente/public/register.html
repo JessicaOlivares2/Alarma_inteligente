@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Usuario</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Estilos específicos para la página de registro */
+        .auth-container {
+            max-width: 400px;
+            width: 90%;
+            background-color: var(--primary-purple);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+
+        .auth-container h1 {
+            color: var(--accent-purple);
+            margin-bottom: 25px;
+            font-size: 2em;
+        }
+
+        .auth-container form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .auth-container input {
+            padding: 12px;
+            border-radius: 10px;
+            border: 2px solid var(--secondary-purple);
+            background-color: var(--secondary-purple);
+            color: var(--text-light);
+            font-size: 1em;
+        }
+
+        .auth-container input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .auth-container button {
+            background: linear-gradient(to right, var(--button-gradient-start), var(--button-gradient-end));
+            color: var(--primary-purple);
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .auth-container button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+            filter: brightness(1.1);
+        }
+
+        .auth-container .message {
+            margin-top: 15px;
+            color: var(--text-highlight);
+            font-weight: bold;
+        }
+
+        .auth-container a {
+            color: var(--accent-purple);
+            margin-top: 15px;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .auth-container a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <h1>Registrarse</h1>
+        <form id="registerForm">
+            <input type="email" id="email" placeholder="Correo Electrónico" required>
+            <input type="password" id="password" placeholder="Contraseña" required>
+            <button type="submit">Crear Cuenta</button>
+        </form>
+        <p id="message" class="message"></p>
+        <a href="login.html">¿Ya tienes una cuenta? Inicia sesión aquí.</a>
+    </div>
+
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const messageEl = document.getElementById('message');
+
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    messageEl.textContent = '¡Registro exitoso! Redirigiendo...';
+                    messageEl.style.color = '#d4edda'; // Verde
+                    window.location.href = 'login.html';
+                } else {
+                    messageEl.textContent = data.message || 'Error al registrar el usuario.';
+                    messageEl.style.color = '#f8d7da'; // Rojo
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                messageEl.textContent = 'Error de conexión. Intenta de nuevo.';
+                messageEl.style.color = '#f8d7da'; // Rojo
+            }
+        });
+    </script>
+</body>
+</html>

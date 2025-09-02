@@ -170,3 +170,21 @@ button:hover {
 .alert-list::-webkit-scrollbar-thumb:hover {
     background: #c3a1ed;
 }
+
+/* ... (estilos existentes) */
+
+.logout {
+    background: #ff5757; /* Un color rojo para la acción de cerrar sesión */
+    color: white;
+    font-weight: bold;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 25px;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background-color 0.3s;
+}
+
+.logout:hover {
+    background: #d43f3f;
+}
