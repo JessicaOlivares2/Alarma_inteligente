@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" 
+  url      = env("DATABASE_URL")
+}
+
+model Device {
+  id        String   @id @default(cuid())
+  name      String
+  location  String?
+  ipAddress String?
+  status    String   @default("inactive") // active, inactive, alert
+  sensors   Sensor[]
+  alerts    Alert[]
+  userId    String   // ← Agregar este campo
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade) // ← Agregar esta relación
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Sensor {
+  id          String   @id @default(cuid())
+  type        String   // motion, magnetic
+  name        String
+  location    String?
+  status      String   @default("normal") // normal, triggered
+  deviceId    String
+  device      Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  alerts      Alert[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Alert {
+  id        String   @id @default(cuid())
+  type      String   // motion, door
+  message   String
+  deviceId  String
+  device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  sensorId  String
+  sensor    Sensor   @relation(fields: [sensorId], references: [id], onDelete: Cascade)
+  resolved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  devices   Device[]
+  createdAt DateTime @default(now())
+}
