@@ -3,18 +3,18 @@ const { PrismaClient } = require('@prisma/client');
 const socketIo = require('socket.io');
 const http = require('http');
 const nodemailer = require('nodemailer');
-const bcrypt = require('bcryptjs'); // Importar para encriptar contraseñas
-const jwt = require('jsonwebtoken'); // Importar para manejar tokens JWT
+const bcrypt = require('bcryptjs'); 
+const jwt = require('jsonwebtoken'); 
 
 const prisma = new PrismaClient();
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
+// Middleware para parsear JSON en las peticiones (fundamental para recibir datos de Node-RED)
 app.use(express.json());
 
 // Clave secreta para firmar los tokens JWT
-// En producción, debe ser una variable de entorno y muy segura.
 const JWT_SECRET = process.env.JWT_SECRET || 'mi_clave_secreta_super_segura';
 
 // Configuración de nodemailer para alertas por correo
@@ -28,38 +28,33 @@ const transporter = nodemailer.createTransport({
 
 // Middleware para proteger rutas
 const authMiddleware = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1]; // Extraer el token del header
+  const token = req.headers.authorization?.split(' ')[1];
   if (!token) {
     return res.status(401).json({ message: 'No hay token, autorización denegada' });
   }
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded; // Guardar la información del usuario en la solicitud
+    req.user = decoded; 
     next();
   } catch (err) {
     res.status(401).json({ message: 'El token no es válido' });
   }
 };
 
-// --- Rutas de Autenticación ---
+// --- Rutas de Autenticación (sin cambios) ---
 
 // Ruta para el registro de usuarios
 app.post('/api/register', async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    // Verificar si el usuario ya existe
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ message: 'El usuario ya existe' });
     }
-
-    // Encriptar la contraseña
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Crear el nuevo usuario en la base de datos
     const newUser = await prisma.user.create({
       data: {
         email,
@@ -78,22 +73,16 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    // Buscar el usuario por email
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       return res.status(400).json({ message: 'Credenciales inválidas' });
     }
-
-    // Comparar la contraseña encriptada
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Credenciales inválidas' });
     }
-
-    // Generar un token JWT
     const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, {
-      expiresIn: '1h', // El token expira en 1 hora
+      expiresIn: '1h', 
     });
 
     res.json({ message: 'Inicio de sesión exitoso', token });
@@ -103,21 +92,49 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// --- Rutas protegidas (ahora requieren autenticación) ---
+// --- RUTA MODIFICADA: ALMACENAMIENTO DE ALERTA (Actividad L) ---
 
-// Endpoint para recibir alertas del ESP32
-// NOTA: Esta ruta no necesita autenticación ya que el ESP32 no tiene un token de usuario.
+// Endpoint para recibir alertas del ESP32 desde Node-RED
 app.post('/api/alert', async (req, res) => {
   try {
-    const { deviceId, sensorId, type, message } = req.body;
+    // 1. Obtener los campos enviados por el ESP32 (vía Node-RED)
+    // El ESP32 envía: tipo, mensaje, dispositivo (nombre), sensor (nombre)
+    const { tipo, mensaje, dispositivo, sensor } = req.body;
     
-    // Registrar alerta en la base de datos
+    // VALIDACIÓN BÁSICA: Asegurarse de tener los datos críticos
+    if (!tipo || !mensaje || !dispositivo || !sensor) {
+        return res.status(400).json({ message: 'Faltan datos críticos para registrar la alerta (tipo, mensaje, dispositivo o sensor).' });
+    }
+
+    // 2. BUSCAR IDs: Transformar nombres de dispositivo/sensor a IDs de la BD (Prisma)
+    // Esto asume que tienes un campo 'name' en tus modelos Device y Sensor
+    const device = await prisma.device.findFirst({
+        where: { name: dispositivo } 
+    });
+    
+    const sensorDb = await prisma.sensor.findFirst({
+        where: { name: sensor } 
+    });
+
+    // Manejar el caso si no se encuentran
+    if (!device) {
+         console.warn(`Dispositivo no encontrado en BD: ${dispositivo}`);
+         // Puedes optar por no guardar la alerta o usar un ID predeterminado. Aquí retornamos error.
+         return res.status(404).json({ message: `Dispositivo '${dispositivo}' no registrado en la BD.` });
+    }
+    if (!sensorDb) {
+         console.warn(`Sensor no encontrado en BD: ${sensor}`);
+         return res.status(404).json({ message: `Sensor '${sensor}' no registrado en la BD.` });
+    }
+
+
+    // 3. Registrar alerta en la base de datos usando los IDs encontrados
     const alert = await prisma.alert.create({
       data: {
-        type,
-        message,
-        deviceId,
-        sensorId
+        type: tipo,     // Se usa 'tipo' del ESP32
+        message: mensaje, // Se usa 'mensaje' del ESP32
+        deviceId: device.id, // ID encontrado
+        sensorId: sensorDb.id // ID encontrado
       },
       include: {
         device: true,
@@ -125,14 +142,14 @@ app.post('/api/alert', async (req, res) => {
       }
     });
 
-    // Enviar notificación por Socket.io a la página web
+    // 4. Enviar notificación por Socket.io a la página web
     io.emit('new-alert', alert);
     
-    // Enviar correo electrónico
+    // 5. Enviar correo electrónico (Tu lógica original, usando los IDs encontrados)
     const users = await prisma.user.findMany({
       where: {
         devices: {
-          some: { id: deviceId }
+          some: { id: device.id } // Usar el device.id encontrado
         }
       }
     });
@@ -141,25 +158,26 @@ app.post('/api/alert', async (req, res) => {
       await transporter.sendMail({
         from: process.env.EMAIL_USER,
         to: user.email,
-        subject: `Alerta de seguridad: ${type}`,
-        html: `<p>${message}</p><p>Fecha: ${new Date()}</p>`
+        subject: `Alerta de seguridad: ${tipo}`,
+        html: `<p>${mensaje}</p><p>Dispositivo: ${dispositivo}</p><p>Sensor: ${sensor}</p><p>Fecha: ${new Date()}</p>`
       });
     }
 
-    res.status(200).json({ success: true });
+    // Respuesta a Node-RED
+    res.status(201).json({ success: true, message: 'Alerta procesada y registrada.', alertId: alert.id });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error procesando la alerta' });
+    console.error('Error al procesar la alerta:', error);
+    res.status(500).json({ error: 'Error interno del servidor al procesar la alerta' });
   }
 });
 
+// --- Rutas protegidas (sin cambios) ---
+
 // Endpoint para el estado del dispositivo
-// Ahora protegida
 app.post('/api/device-status', authMiddleware, async (req, res) => {
   try {
     const { deviceId, status } = req.body;
     
-    // NOTA: En un proyecto real, deberías verificar que req.user.id es el dueño del dispositivo
     await prisma.device.update({
       where: { id: deviceId },
       data: { status }
@@ -174,10 +192,8 @@ app.post('/api/device-status', authMiddleware, async (req, res) => {
 });
 
 // Endpoint para obtener historial de alertas
-// Ahora protegida
 app.get('/api/alerts', authMiddleware, async (req, res) => {
   try {
-    // Buscar alertas solo para los dispositivos del usuario autenticado
     const userDevices = await prisma.device.findMany({
       where: { userId: req.user.id }
     });
