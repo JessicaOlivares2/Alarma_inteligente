@@ -192,30 +192,73 @@ app.post('/api/device-status', authMiddleware, async (req, res) => {
 });
 
 // Endpoint para obtener historial de alertas
-app.get('/api/alerts', authMiddleware, async (req, res) => {
-  try {
-    const userDevices = await prisma.device.findMany({
-      where: { userId: req.user.id }
-    });
-    const deviceIds = userDevices.map(device => device.id);
+// En server.js, dentro de la ruta app.post('/api/alert', ...)
 
-    const alerts = await prisma.alert.findMany({
-      where: {
-        deviceId: { in: deviceIds }
+// Endpoint para recibir alertas del ESP32 desde Node-RED (MODIFICADO PARA VIDEO)
+app.post('/api/alert', async (req, res) => {
+  try {
+    // 1. Obtener los campos enviados por el ESP32 (vía Node-RED)
+    // Se añade 'videoPath'
+    const { tipo, mensaje, dispositivo, sensor, videoPath } = req.body; 
+    
+    // VALIDACIÓN BÁSICA: Asegurarse de tener los datos críticos
+    if (!tipo || !mensaje || !dispositivo || !sensor) {
+        return res.status(400).json({ message: 'Faltan datos críticos para registrar la alerta (tipo, mensaje, dispositivo o sensor).' });
+    }
+
+    // 2. BUSCAR IDs: Transformar nombres de dispositivo/sensor a IDs de la BD (Prisma)
+    // ... (El código de búsqueda de Device y Sensor sigue igual) ...
+    const device = await prisma.device.findFirst({
+        where: { name: dispositivo } 
+    });
+    
+    const sensorDb = await prisma.sensor.findFirst({
+        where: { name: sensor } 
+    });
+
+    // ... (Manejo de errores 404 sigue igual) ...
+    if (!device) {
+         console.warn(`Dispositivo no encontrado en BD: ${dispositivo}`);
+         return res.status(404).json({ message: `Dispositivo '${dispositivo}' no registrado en la BD.` });
+    }
+    if (!sensorDb) {
+         console.warn(`Sensor no encontrado en BD: ${sensor}`);
+         return res.status(404).json({ message: `Sensor '${sensor}' no registrado en la BD.` });
+    }
+
+
+    // 3. Registrar alerta en la base de datos, AÑADIENDO videoPath
+    const alert = await prisma.alert.create({
+      data: {
+        type: tipo,     
+        message: mensaje, 
+        deviceId: device.id, 
+        sensorId: sensorDb.id, 
+        videoPath: videoPath || null, // AÑADIDO: Si Node-RED lo envía, se guarda
+        // El campo videoPath debe ser NULL si no hay video (ej. alerta de sensor magnético simple)
       },
       include: {
         device: true,
         sensor: true
-      },
-      orderBy: {
-        createdAt: 'desc'
       }
     });
+
+    // 4. Enviar notificación por Socket.io a la página web
+    io.emit('new-alert', alert);
     
-    res.json(alerts);
+    // ... (Lógica de envío de correo sigue igual) ...
+    // ... (Obtención de usuarios sigue igual) ...
+    
+    for (const user of users) {
+        // ... (Transporter sendMail sigue igual) ...
+    }
+
+
+    // Respuesta a Node-RED
+    res.status(201).json({ success: true, message: 'Alerta procesada y registrada.', alertId: alert.id });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error obteniendo alertas' });
+    console.error('Error al procesar la alerta:', error);
+    res.status(500).json({ error: 'Error interno del servidor al procesar la alerta' });
   }
 });
 
@@ -226,3 +269,13 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Servidor ejecutándose en puerto ${PORT}`);
 });
+
+// En server.js, debajo de "Servir archivos estáticos" (o donde prefieras las rutas GET)
+
+// --- Ruta para servir archivos de Video ---
+const path = require('path');
+// Asume que los videos están en una carpeta llamada 'videos_alertas' en la raíz del proyecto
+app.use('/api/videos', express.static(path.join(__dirname, 'videos_alertas')));
+
+// NOTA: Asegúrate de que tu `server.js` tenga 'const path = require('path');' 
+// o añade 'const path = require('path');' al principio.

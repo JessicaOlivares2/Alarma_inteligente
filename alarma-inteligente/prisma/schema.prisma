@@ -38,6 +38,7 @@ model Alert {
   id        String   @id @default(cuid())
   type      String   // motion, door
   message   String
+  videoPath String?
   deviceId  String
   device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
   sensorId  String
