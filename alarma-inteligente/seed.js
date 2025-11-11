@@ -12,51 +12,37 @@ async function main() {
     },
   });
 
-  // Crear dispositivo por defecto
-  const defaultDevice = await prisma.device.upsert({
-    where: { id: 'ESP32_001' },
+  // Crear dispositivo ESP32 que coincide con tu ESP32
+  const esp32Device = await prisma.device.upsert({
+    where: { id: 'ESP32' }, // id coincide con lo que envía tu ESP32
     update: {},
     create: {
-      id: 'ESP32_001',
-      name: 'Dispositivo Principal',
-      location: 'Salón Principal',
+      id: 'ESP32',
+      name: 'ESP32',
+      location: 'Salón',
       status: 'inactive',
       userId: adminUser.id,
     },
   });
 
-  // Crear sensores por defecto
-  const sensors = await Promise.all([
-    prisma.sensor.upsert({
-      where: { id: 'motion_01' },
-      update: {},
-      create: {
-        id: 'motion_01',
-        type: 'motion',
-        name: 'Sensor de Movimiento',
-        location: 'Entrada Principal',
-        status: 'normal',
-        deviceId: defaultDevice.id,
-      },
-    }),
-    prisma.sensor.upsert({
-      where: { id: 'magnetic_01' },
-      update: {},
-      create: {
-        id: 'magnetic_01',
-        type: 'magnetic',
-        name: 'Sensor Magnético',
-        location: 'Puerta Principal',
-        status: 'normal',
-        deviceId: defaultDevice.id,
-      },
-    }),
-  ]);
+  // Crear sensor PIR_Principal
+  const pirSensor = await prisma.sensor.upsert({
+    where: { id: 'PIR_Principal' },
+    update: {},
+    create: {
+      id: 'PIR_Principal',
+      type: 'motion',
+      name: 'PIR_Principal',
+      location: 'Salón',
+      status: 'normal',
+      deviceId: esp32Device.id,
+    },
+  });
 
   console.log('Datos de inicialización creados:');
   console.log('- Usuario:', adminUser.email);
-  console.log('- Dispositivo:', defaultDevice.name);
-  console.log('- Sensores:', sensors.map(s => s.name).join(', '));
+  console.log('- Dispositivo:', esp32Device.name);
+  console.log('- Sensor:', pirSensor.name);
 }
 
 main()
