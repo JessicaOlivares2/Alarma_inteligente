@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Videos – Sistema de Alarma Inteligente</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        background: radial-gradient(circle at top, #1f1b3f, #080612);
+        color: #f5f5ff;
+        margin: 0;
+        padding: 0;
+      }
+
+      .videos-container {
+        max-width: 1100px;
+        margin: 30px auto;
+        padding: 20px;
+        background: rgba(12, 10, 30, 0.9);
+        border-radius: 20px;
+        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.6);
+        border: 1px solid rgba(153, 102, 255, 0.4);
+      }
+
+      .videos-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+
+      .videos-header h1 {
+        margin: 0;
+        font-size: 1.8rem;
+      }
+
+      .videos-header .subtitle {
+        margin: 0;
+        font-size: 0.9rem;
+        color: #b8b5ff;
+      }
+
+      .btn {
+        border-radius: 999px;
+        border: none;
+        padding: 10px 18px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        background: linear-gradient(135deg, #ff9ff3, #9b5cff);
+        color: #120f2a;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+        transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s;
+      }
+
+      .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6);
+        opacity: 0.95;
+      }
+
+      .videos-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+        gap: 16px;
+      }
+
+      @media (max-width: 900px) {
+        .videos-layout {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      .videos-list {
+        background: rgba(18, 15, 46, 0.96);
+        border-radius: 16px;
+        padding: 12px;
+        border: 1px solid rgba(113, 88, 226, 0.5);
+        max-height: 480px;
+        overflow-y: auto;
+      }
+
+      .videos-list-header {
+        font-size: 0.9rem;
+        color: #c7c5ff;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .videos-list-header span:first-child {
+        flex: 1.6;
+      }
+
+      .videos-list-header span:nth-child(2) {
+        flex: 1.1;
+      }
+
+      .videos-list-header span:last-child {
+        flex: 0.9;
+        text-align: right;
+      }
+
+      .video-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 8px;
+        border-radius: 12px;
+        background: rgba(19, 16, 52, 0.9);
+        margin-bottom: 6px;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: background 0.15s ease, border-color 0.15s ease,
+          transform 0.08s ease;
+      }
+
+      .video-item:hover {
+        background: rgba(33, 28, 82, 0.95);
+        border-color: rgba(154, 107, 255, 0.8);
+        transform: translateY(-1px);
+      }
+
+      .video-item.active {
+        border-color: #ffb8f8;
+        background: radial-gradient(circle at top left, #312b7c, #140f3f);
+      }
+
+      .video-name {
+        flex: 1.6;
+        font-size: 0.9rem;
+      }
+
+      .video-meta {
+        flex: 1.1;
+        font-size: 0.8rem;
+        color: #b9b7ff;
+      }
+
+      .video-actions {
+        flex: 0.9;
+        display: flex;
+        justify-content: flex-end;
+        gap: 6px;
+      }
+
+      .btn-small {
+        font-size: 0.75rem;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+        transition: opacity 0.15s ease, transform 0.08s ease;
+      }
+
+      .btn-small.primary {
+        background: linear-gradient(135deg, #4be1ff, #8a8dff);
+        color: #050312;
+      }
+
+      .btn-small.danger {
+        background: rgba(255, 99, 132, 0.14);
+        color: #ff9ba9;
+        border: 1px solid rgba(255, 99, 132, 0.6);
+      }
+
+      .btn-small:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+      }
+
+      .video-viewer {
+        background: radial-gradient(circle at top, #241f56, #0b0822);
+        border-radius: 16px;
+        padding: 16px;
+        border: 1px solid rgba(113, 88, 226, 0.7);
+        min-height: 260px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .video-viewer h2 {
+        margin: 0;
+        font-size: 1.1rem;
+      }
+
+      .video-details {
+        font-size: 0.85rem;
+        color: #c7c5ff;
+      }
+
+      .video-player-wrapper {
+        margin-top: 8px;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #000;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      video {
+        width: 100%;
+        max-height: 320px;
+        outline: none;
+      }
+
+      .empty-state {
+        font-size: 0.9rem;
+        color: #b9b7ff;
+        text-align: center;
+        padding: 40px 10px;
+        opacity: 0.9;
+      }
+
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        background: rgba(100, 255, 218, 0.08);
+        color: #64ffda;
+        border: 1px solid rgba(100, 255, 218, 0.4);
+      }
+
+      .badge-alerta {
+        display: inline-block;
+        font-size: 0.7rem;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(255, 159, 67, 0.16);
+        color: #ffd29b;
+        margin-left: 6px;
+      }
+
+      .top-bar-nav {
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .link-simple {
+        font-size: 0.85rem;
+        color: #c7c5ff;
+        text-decoration: none;
+        opacity: 0.9;
+      }
+
+      .link-simple:hover {
+        text-decoration: underline;
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="videos-container">
+      <div class="top-bar-nav">
+        <a href="index.html" class="link-simple">⬅ Volver al panel de estado</a>
+      </div>
+
+      <div class="videos-header">
+        <div>
+          <h1>Videos de Alertas</h1>
+          <p class="subtitle">
+            Clips grabados automáticamente cuando se detecta movimiento.
+          </p>
+        </div>
+        <button class="btn" id="refreshBtn">🔄 Actualizar listado</button>
+      </div>
+
+      <div class="videos-layout">
+        <!-- LISTA DE VIDEOS -->
+        <div>
+          <div class="videos-list">
+            <div class="videos-list-header">
+              <span>Nombre / Mensaje</span>
+              <span>Fecha y hora</span>
+              <span>Acciones</span>
+            </div>
+            <div id="videosList"></div>
+          </div>
+        </div>
+
+        <!-- PANEL DE VISUALIZACIÓN -->
+        <div>
+          <div class="video-viewer" id="viewer">
+            <h2>
+              Selecciona un video
+              <span class="badge-alerta">ALERTAS</span>
+            </h2>
+            <div class="video-details" id="videoDetails">
+              No hay ningún video seleccionado. Elegí uno de la lista de la
+              izquierda.
+            </div>
+            <div class="video-player-wrapper" id="playerWrapper" style="display: none;">
+              <video id="videoPlayer" controls></video>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const videosListEl = document.getElementById("videosList");
+      const refreshBtn = document.getElementById("refreshBtn");
+      const viewerTitle = document.querySelector("#viewer h2");
+      const videoDetailsEl = document.getElementById("videoDetails");
+      const playerWrapper = document.getElementById("playerWrapper");
+      const videoPlayer = document.getElementById("videoPlayer");
+
+      let videosData = [];
+      let activeVideoId = null;
+
+      function formatDateTime(isoString) {
+        const d = new Date(isoString);
+        if (isNaN(d.getTime())) return "Fecha desconocida";
+
+        return d.toLocaleString("es-AR", {
+          dateStyle: "short",
+          timeStyle: "medium",
+        });
+      }
+
+      async function loadVideos() {
+        videosListEl.innerHTML =
+          '<div class="empty-state">Cargando videos...</div>';
+
+        try {
+          const res = await fetch("/api/videos");
+          if (!res.ok) throw new Error("Error HTTP " + res.status);
+          const data = await res.json();
+
+          videosData = data;
+          renderVideosList();
+        } catch (err) {
+          console.error(err);
+          videosListEl.innerHTML =
+            '<div class="empty-state">No se pudieron cargar los videos. Reintenta más tarde.</div>';
+        }
+      }
+
+      function renderVideosList() {
+        if (!videosData || videosData.length === 0) {
+          videosListEl.innerHTML =
+            '<div class="empty-state">Todavía no hay videos registrados. Cuando se detecte movimiento y se grabe un clip, aparecerá aquí.</div>';
+          viewerTitle.textContent = "Selecciona un video";
+          videoDetailsEl.textContent =
+            "No hay ningún video seleccionado. Elegí uno de la lista de la izquierda.";
+          playerWrapper.style.display = "none";
+          return;
+        }
+
+        videosListEl.innerHTML = "";
+
+        videosData.forEach((vid) => {
+          const item = document.createElement("div");
+          item.className = "video-item";
+          if (vid.id === activeVideoId) {
+            item.classList.add("active");
+          }
+
+          const nameDiv = document.createElement("div");
+          nameDiv.className = "video-name";
+          nameDiv.innerHTML = `
+            <div><strong>${vid.message || "(Sin mensaje)"}</strong></div>
+            <div style="font-size:0.75rem; color:#a5a3ff;">
+              <span class="tag">Tipo: ${vid.type || "N/D"}</span>
+            </div>
+          `;
+
+          const metaDiv = document.createElement("div");
+          metaDiv.className = "video-meta";
+          metaDiv.textContent = formatDateTime(vid.createdAt);
+
+          const actionsDiv = document.createElement("div");
+          actionsDiv.className = "video-actions";
+
+          const btnVer = document.createElement("button");
+          btnVer.className = "btn-small primary";
+          btnVer.textContent = "Ver";
+          btnVer.addEventListener("click", (e) => {
+            e.stopPropagation();
+            selectVideo(vid.id);
+          });
+
+          const btnEliminar = document.createElement("button");
+          btnEliminar.className = "btn-small danger";
+          btnEliminar.textContent = "Eliminar";
+          btnEliminar.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            const ok = confirm(
+              "¿Seguro que querés eliminar este video? Se borrará también el registro de la alerta."
+            );
+            if (!ok) return;
+            await deleteVideo(vid.id);
+          });
+
+          actionsDiv.appendChild(btnVer);
+          actionsDiv.appendChild(btnEliminar);
+
+          item.appendChild(nameDiv);
+          item.appendChild(metaDiv);
+          item.appendChild(actionsDiv);
+
+          item.addEventListener("click", () => {
+            selectVideo(vid.id);
+          });
+
+          videosListEl.appendChild(item);
+        });
+      }
+
+      function selectVideo(id) {
+        const vid = videosData.find((v) => v.id === id);
+        if (!vid || !vid.videoPath) {
+          alert("Este registro no tiene video asociado.");
+          return;
+        }
+
+        activeVideoId = id;
+        renderVideosList(); // para que se marque el activo
+
+        viewerTitle.textContent = "Reproduciendo alerta";
+        videoDetailsEl.innerHTML = `
+          <div><strong>Mensaje:</strong> ${vid.message || "(Sin mensaje)"}</div>
+          <div><strong>Tipo:</strong> ${vid.type || "N/D"}</div>
+          <div><strong>Fecha:</strong> ${formatDateTime(vid.createdAt)}</div>
+        `;
+
+        videoPlayer.src = vid.videoPath;
+        playerWrapper.style.display = "block";
+        videoPlayer.play().catch(() => {});
+      }
+
+      async function deleteVideo(id) {
+        try {
+          const res = await fetch(`/api/videos/${id}`, {
+            method: "DELETE",
+          });
+          if (!res.ok) throw new Error("Error HTTP " + res.status);
+
+          if (id === activeVideoId) {
+            activeVideoId = null;
+            videoPlayer.pause();
+            videoPlayer.src = "";
+            viewerTitle.textContent = "Selecciona un video";
+            videoDetailsEl.textContent =
+              "No hay ningún video seleccionado. Elegí uno de la lista de la izquierda.";
+            playerWrapper.style.display = "none";
+          }
+
+          await loadVideos();
+        } catch (err) {
+          console.error(err);
+          alert("No se pudo eliminar el video. Revisar consola.");
+        }
+      }
+
+      refreshBtn.addEventListener("click", () => {
+        loadVideos();
+      });
+
+      loadVideos();
+    </script>
+  </body>
+</html>

@@ -112,7 +112,7 @@
                     localStorage.setItem('auth_token', data.token); // Almacenar el token
                     messageEl.textContent = '¡Inicio de sesión exitoso! Redirigiendo...';
                     messageEl.style.color = '#d4edda'; // Verde
-                    window.location.href = 'index.html'; // Redirigir a la página principal
+                    window.location.href = 'videos.html'; // Redirigir a la página principal
                 } else {
                     messageEl.textContent = data.message || 'Error al iniciar sesión. Verifica tus credenciales.';
                     messageEl.style.color = '#f8d7da'; // Rojo
